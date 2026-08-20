@@ -21,12 +21,40 @@
             padding: 1rem;
         }
 
-        input[type=range] { -webkit-appearance: none; background: transparent; width: 100%; margin: 10px 0; }
+        input[type=range] { 
+            -webkit-appearance: none; 
+            background: transparent; 
+            width: 100%; 
+            margin: 12px 0; 
+        }
         input[type=range]:focus { outline: none; }
-        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #2a2d3e; border-radius: 9999px; }
-        input[type=range]::-webkit-slider-thumb { height: 16px; width: 16px; border-radius: 50%; background: #8b5cf6; cursor: pointer; -webkit-appearance: none; margin-top: -6px; box-shadow: 0 0 10px rgba(139, 92, 246, 0.4); }
+        input[type=range]::-webkit-slider-runnable-track { 
+            width: 100%; 
+            height: 4px; 
+            cursor: pointer; 
+            background: #2a2d3e; 
+            border-radius: 9999px; 
+        }
+        input[type=range]::-webkit-slider-thumb { 
+            height: 16px; 
+            width: 16px; 
+            border-radius: 50%; 
+            background: #8b5cf6; 
+            cursor: pointer; 
+            -webkit-appearance: none; 
+            margin-top: -6px; 
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.4); 
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
         
-        .app-panel { background: #1a1d29; border: 1px solid #2a2d3e; border-radius: 24px; }
+        .app-panel { 
+            background: #1a1d29; 
+            border: 1px solid #2a2d3e; 
+            border-radius: 24px; 
+        }
 
         .toggle-checkbox:checked { right: 0; border-color: #8b5cf6; }
         .toggle-checkbox:checked + .toggle-label { background-color: #8b5cf6; }
@@ -43,6 +71,14 @@
         #modal-overlay.active { display: flex; opacity: 1; }
         
         .phase-badge { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+        .list-circle { list-style-type: circle; }
+        
+        .mixer-item {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+        }
     </style>
 </head>
 <body>
@@ -51,9 +87,9 @@
 
     <div class="w-full max-w-5xl flex flex-col md:flex-row gap-6 mx-auto items-stretch lg:min-h-[650px]">
         
-        <!-- 左パネル -->
-        <div class="app-panel w-full md:w-1/3 p-8 flex flex-col relative">
-            <div class="flex justify-between items-start mb-10">
+        <!-- Left Panel: Transport and Clock -->
+        <div class="app-panel w-full md:w-1/3 p-8 flex flex-col relative justify-between">
+            <div class="flex justify-between items-start">
                 <div>
                     <h1 class="text-2xl font-bold text-white tracking-wide">FocusSynth</h1>
                     <p class="text-[10px] text-slate-400 mt-1 uppercase tracking-widest">Workspace Ambient</p>
@@ -63,163 +99,168 @@
                 </button>
             </div>
 
-            <div class="flex-grow flex flex-col items-center justify-center -mt-8">
-                <div id="clock-display" class="text-6xl font-bold text-white tracking-tighter mb-2 font-mono">00:00</div>
+            <div class="flex flex-col items-center justify-center my-8">
+                <div id="clock-display" class="text-7xl font-bold text-white tracking-tighter mb-6 font-mono">00:00</div>
                 
-                <!-- 天気表示 -->
-                <div id="weather-display" class="text-sm text-teal-400 mb-4 font-mono">Fetching Weather...</div>
-                
-                <div id="phase-badge" class="phase-badge px-4 py-1.5 rounded-full flex items-center gap-2 mb-8 transition-all">
-                    <span id="phase-icon" class="text-sm">--</span>
+                <div id="phase-badge" class="phase-badge px-5 py-2 rounded-full flex items-center gap-2 mb-8 transition-all">
+                    <span id="phase-icon" class="text-base">--</span>
                     <span id="phase-display" class="text-sm text-slate-200 font-medium">Loading...</span>
                 </div>
 
-                <div class="flex items-center gap-3 mb-4">
+                <div class="flex items-center gap-3 mb-10">
                     <div class="relative inline-block w-[44px] h-[22px] align-middle select-none">
                         <input type="checkbox" id="time-sync-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer opacity-0" checked/>
                         <label for="time-sync-toggle" class="toggle-label block overflow-hidden h-[22px] rounded-full cursor-pointer relative"></label>
                         <span class="toggle-circle absolute block pointer-events-none"></span>
                     </div>
-                    <span class="text-xs text-slate-400 font-medium w-24">Time Sync</span>
+                    <span class="text-sm text-slate-400 font-medium w-24">Time Sync</span>
                 </div>
 
-                <div class="flex items-center gap-3 mb-8">
-                    <div class="relative inline-block w-[44px] h-[22px] align-middle select-none">
-                        <input type="checkbox" id="weather-sync-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer opacity-0" checked/>
-                        <label for="weather-sync-toggle" class="toggle-label block overflow-hidden h-[22px] rounded-full cursor-pointer relative"></label>
-                        <span class="toggle-circle absolute block pointer-events-none"></span>
-                    </div>
-                    <span class="text-xs text-slate-400 font-medium w-24">Weather Sync</span>
+                <div class="flex flex-col items-center">
+                    <button id="power-btn" class="w-24 h-24 rounded-full bg-[#8b5cf6] text-white flex items-center justify-center shadow-[0_0_30px_rgba(139,92,246,0.3)] hover:scale-105 transition-transform duration-300 group">
+                        <svg id="power-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 ml-1">
+                            <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <div id="power-text" class="text-xs text-slate-500 uppercase tracking-widest mt-6 font-semibold">System Standby</div>
                 </div>
-
-                <button id="power-btn" class="w-20 h-20 rounded-full bg-[#8b5cf6] text-white flex items-center justify-center shadow-[0_0_30px_rgba(139,92,246,0.3)] hover:scale-105 transition-transform duration-300 group">
-                    <svg id="power-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8 ml-1">
-                        <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd" />
-                    </svg>
-                </button>
-                <div id="power-text" class="text-[10px] text-slate-500 uppercase tracking-widest mt-6 font-semibold">System Standby</div>
             </div>
+            
+            <div class="h-4"></div>
         </div>
 
-        <!-- 右パネル -->
+        <!-- Right Panel: Mixer Controls -->
         <div class="app-panel w-full md:w-2/3 p-8 flex flex-col">
-            <h2 class="text-xs uppercase tracking-widest text-slate-500 mb-4 font-semibold">Soundscape Presets</h2>
-            
-            <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-8">
-                <button class="preset-btn text-[10px] py-2 px-1 rounded-lg text-center" data-preset="morningClarity">Morning<br>Clarity</button>
-                <button class="preset-btn text-[10px] py-2 px-1 rounded-lg text-center" data-preset="deepFocus">Deep<br>Focus</button>
-                <button class="preset-btn text-[10px] py-2 px-1 rounded-lg text-center" data-preset="creativeFlow">Creative<br>Flow</button>
-                <button class="preset-btn text-[10px] py-2 px-1 rounded-lg text-center" data-preset="eveningCalm">Evening<br>Calm</button>
-                <button class="preset-btn text-[10px] py-2 px-1 rounded-lg text-center" data-preset="deepSleep">Deep<br>Sleep</button>
-                <button class="preset-btn text-[10px] py-2 px-1 rounded-lg text-center" data-preset="freeMode">Free<br>Mode</button>
-            </div>
-
-            <!-- ミキサーグリッド（すべてのスライダーを統合して均等配置） -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-8 flex-grow content-between">
+            <div>
+                <h2 class="text-xs uppercase tracking-widest text-slate-500 mb-4 font-semibold">Soundscape Presets</h2>
                 
-                <!-- 1. Pink Noise -->
-                <div>
-                    <div class="flex justify-between items-center mb-1">
-                        <div class="flex items-center gap-2">
-                            <div class="w-2 h-2 rounded-full bg-pink-400"></div>
-                            <label for="fader-pink" class="text-sm font-semibold text-slate-200">Pink Noise</label>
-                        </div>
-                        <span id="val-pink" class="text-xs text-slate-500 font-mono">40%</span>
-                    </div>
-                    <input type="range" id="fader-pink" min="0" max="1" step="0.01" value="0.4">
+                <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-10">
+                    <button class="preset-btn text-[10px] py-2 px-1 rounded-lg text-center" data-preset="morningClarity">Morning<br>Clarity</button>
+                    <button class="preset-btn text-[10px] py-2 px-1 rounded-lg text-center" data-preset="deepFocus">Deep<br>Focus</button>
+                    <button class="preset-btn text-[10px] py-2 px-1 rounded-lg text-center" data-preset="creativeFlow">Creative<br>Flow</button>
+                    <button class="preset-btn text-[10px] py-2 px-1 rounded-lg text-center" data-preset="eveningCalm">Evening<br>Calm</button>
+                    <button class="preset-btn text-[10px] py-2 px-1 rounded-lg text-center" data-preset="deepSleep">Deep<br>Sleep</button>
+                    <button class="preset-btn text-[10px] py-2 px-1 rounded-lg text-center" data-preset="freeMode">Free<br>Mode</button>
                 </div>
-
-                <!-- 2. Brown Noise -->
-                <div>
-                    <div class="flex justify-between items-center mb-1">
-                        <div class="flex items-center gap-2">
-                            <div class="w-2 h-2 rounded-full bg-amber-600"></div>
-                            <label for="fader-brown" class="text-sm font-semibold text-slate-200">Brown Noise</label>
-                        </div>
-                        <span id="val-brown" class="text-xs text-slate-500 font-mono">70%</span>
-                    </div>
-                    <input type="range" id="fader-brown" min="0" max="1" step="0.01" value="0.7">
-                </div>
-
-                <!-- 3. Binaural Beat -->
-                <div>
-                    <div class="flex justify-between items-center mb-1">
-                        <div class="flex items-center gap-2">
-                            <div class="w-2 h-2 rounded-full bg-blue-500"></div>
-                            <label for="fader-binaural" class="text-sm font-semibold text-slate-200">Binaural Beat</label>
-                        </div>
-                        <span id="val-binaural" class="text-xs text-slate-500 font-mono">30%</span>
-                    </div>
-                    <input type="range" id="fader-binaural" min="0" max="1" step="0.01" value="0.3">
-                    
-                    <div class="flex justify-between items-center mt-3 mb-1">
-                        <label for="fader-hz" class="text-[10px] text-slate-400">Frequency (Hz)</label>
-                        <span id="val-hz" class="text-[10px] text-slate-300 font-mono bg-slate-800 px-1.5 py-0.5 rounded">12.0Hz</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-[9px] text-slate-600">3Hz<br>(Sleep)</span>
-                        <input type="range" id="fader-hz" min="3" max="14" step="0.1" value="12" class="flex-grow">
-                        <span class="text-[9px] text-slate-600">14Hz<br>(Focus)</span>
-                    </div>
-                </div>
-
-                <!-- 4. Generative Tones -->
-                <div>
-                    <div class="flex justify-between items-center mb-1">
-                        <div class="flex items-center gap-2">
-                            <div class="w-2 h-2 rounded-full bg-teal-400"></div>
-                            <label for="fader-tones" class="text-sm font-semibold text-slate-200">Generative Tones</label>
-                        </div>
-                        <span id="val-tones" class="text-xs text-slate-500 font-mono">60%</span>
-                    </div>
-                    <input type="range" id="fader-tones" min="0" max="1" step="0.01" value="0.6">
-
-                    <div class="flex justify-between items-center mt-3 mb-1">
-                        <label for="fader-style" class="text-[10px] text-slate-400">Tone Style</label>
-                        <span id="val-style" class="text-[10px] text-slate-300 font-mono bg-slate-800 px-1.5 py-0.5 rounded">40%</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-[9px] text-slate-600">Drone</span>
-                        <input type="range" id="fader-style" min="0" max="1" step="0.01" value="0.4" class="flex-grow">
-                        <span class="text-[9px] text-slate-600">Melody</span>
-                    </div>
-                </div>
-
-                <!-- 5. Space Brightness (Filter) -->
-                <div>
-                    <div class="flex justify-between items-center mb-1">
-                        <div class="flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-                            <label for="fader-filter" class="text-sm font-semibold text-slate-200">Space Brightness (Lowpass)</label>
-                        </div>
-                        <span id="val-filter" class="text-xs font-mono transition-colors duration-300">800Hz</span>
-                    </div>
-                    <div class="flex items-center gap-4 mt-7">
-                        <span class="text-[10px] text-slate-500 w-12">Muffled</span>
-                        <input type="range" id="fader-filter" min="200" max="4500" step="10" value="800" class="flex-grow">
-                        <span class="text-[10px] text-slate-500 w-12 text-right">Clear</span>
-                    </div>
-                </div>
-
-                <!-- 6. Master Volume -->
-                <div>
-                    <div class="flex justify-between items-center mb-1">
-                        <div class="flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
-                            <label for="fader-volume" class="text-sm font-semibold text-slate-200">Master Volume</label>
-                        </div>
-                        <span id="val-volume" class="text-xs font-mono text-slate-500">80%</span>
-                    </div>
-                    <div class="mt-7">
-                        <input type="range" id="fader-volume" min="0" max="1" step="0.01" value="0.8">
-                    </div>
-                </div>
-
             </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-10">
+                
+                <div class="mixer-item">
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2.5 h-2.5 rounded-full bg-pink-400"></div>
+                                <label for="fader-pink" class="text-sm font-semibold text-slate-200">Pink Noise</label>
+                            </div>
+                            <span id="val-pink" class="text-xs text-slate-500 font-mono">40%</span>
+                        </div>
+                        <input type="range" id="fader-pink" min="0" max="1" step="0.01" value="0.4">
+                    </div>
+                </div>
+
+                <div class="mixer-item">
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2.5 h-2.5 rounded-full bg-amber-600"></div>
+                                <label for="fader-brown" class="text-sm font-semibold text-slate-200">Brown Noise</label>
+                            </div>
+                            <span id="val-brown" class="text-xs text-slate-500 font-mono">70%</span>
+                        </div>
+                        <input type="range" id="fader-brown" min="0" max="1" step="0.01" value="0.7">
+                    </div>
+                </div>
+
+                <div class="mixer-item">
+                    <div class="flex flex-col h-full justify-between">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
+                                    <label for="fader-binaural" class="text-sm font-semibold text-slate-200">Binaural Beat</label>
+                                </div>
+                                <span id="val-binaural" class="text-xs text-slate-500 font-mono">30%</span>
+                            </div>
+                            <input type="range" id="fader-binaural" min="0" max="1" step="0.01" value="0.3">
+                        </div>
+                        
+                        <div class="mt-4">
+                            <div class="flex justify-between items-center mb-1">
+                                <label for="fader-hz" class="text-[10px] text-slate-400">Frequency (Hz)</label>
+                                <span id="val-hz" class="text-[10px] text-slate-300 font-mono bg-slate-800 px-1.5 py-0.5 rounded">12.0Hz</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-[9px] text-slate-600 w-8">3Hz<br>(Sleep)</span>
+                                <input type="range" id="fader-hz" min="3" max="14" step="0.1" value="12" class="flex-grow">
+                                <span class="text-[9px] text-slate-600 w-8 text-right">14Hz<br>(Focus)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mixer-item">
+                    <div class="flex flex-col h-full justify-between">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-2.5 h-2.5 rounded-full bg-teal-400"></div>
+                                    <label for="fader-tones" class="text-sm font-semibold text-slate-200">Generative Tones</label>
+                                </div>
+                                <span id="val-tones" class="text-xs text-slate-500 font-mono">60%</span>
+                            </div>
+                            <input type="range" id="fader-tones" min="0" max="1" step="0.01" value="0.6">
+                        </div>
+
+                        <div class="mt-4">
+                            <div class="flex justify-between items-center mb-1">
+                                <label for="fader-style" class="text-[10px] text-slate-400">Tone Style</label>
+                                <span id="val-style" class="text-[10px] text-slate-300 font-mono bg-slate-800 px-1.5 py-0.5 rounded">40%</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-[9px] text-slate-600 w-8">Drone</span>
+                                <input type="range" id="fader-style" min="0" max="1" step="0.01" value="0.4" class="flex-grow">
+                                <span class="text-[9px] text-slate-600 w-8 text-right">Melody</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-slate-800/50">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                        <label for="fader-filter" class="text-sm font-semibold text-slate-200">Space Brightness (Lowpass Filter)</label>
+                    </div>
+                    <span id="val-filter" class="text-xs font-mono transition-colors duration-300">800Hz</span>
+                </div>
+                <div class="flex items-center gap-4 mt-4">
+                    <span class="text-[10px] text-slate-500 w-12">Muffled</span>
+                    <input type="range" id="fader-filter" min="200" max="4500" step="10" value="800" class="flex-grow">
+                    <span class="text-[10px] text-slate-500 w-12 text-right">Clear</span>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-slate-800/50 mb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+                        <label for="fader-master" class="text-sm font-semibold text-slate-200">Master Volume</label>
+                    </div>
+                    <span id="val-master" class="text-xs font-mono text-slate-500">80%</span>
+                </div>
+                <div class="flex items-center gap-4 mt-4">
+                    <span class="text-[10px] text-slate-500 w-12">0%</span>
+                    <input type="range" id="fader-master" min="0" max="1" step="0.01" value="0.8" class="flex-grow">
+                    <span class="text-[10px] text-slate-500 w-12 text-right">100%</span>
+                </div>
+            </div>
+            
+            <div class="flex-grow"></div>
         </div>
     </div>
 
-    <!-- About モーダル -->
     <div id="modal-overlay" class="fixed inset-0 bg-[#0f111a]/90 backdrop-blur-sm z-50 items-center justify-center p-4">
         <div class="app-panel max-w-2xl w-full max-h-[90vh] overflow-y-auto p-8 shadow-2xl relative">
             <button id="close-modal-btn" class="absolute top-6 right-6 text-slate-500 hover:text-white transition-colors">
@@ -227,28 +268,49 @@
             </button>
             <h2 class="text-2xl font-bold text-white mb-6">About FocusSynth</h2>
             
-            <div class="space-y-6 text-sm text-slate-400 leading-relaxed">
-                <p>FocusSynthは、人間の集中を促す音響学的アプローチに基づき、Web Audio APIを使用してブラウザ上でリアルタイムに波形を計算・合成するアプリケーションです[cite: 4]。外部の音声ファイルは一切使用していません[cite: 4]。</p>
+            <div class="space-y-8 text-sm text-slate-400 leading-relaxed">
+                <p>FocusSynthは、人間の集中を促す音響学的アプローチを取り入れた、ブラウザ上で動作するジェネレーティブ・アンビエントアプリケーションです。</p>
                 
-                <div>
-                    <h3 class="font-semibold text-slate-200 mt-2 mb-2">🔊 音響ロジック（集中力向上の研究に基づく）</h3>
-                    <ul class="list-disc pl-5 space-y-2">
-                        <li><strong>Pink Noise (マスキング効果と1/fゆらぎ):</strong> 滝や風など自然界の音に近い周波数特性を持ちます[cite: 4]。家族の声や生活音といった周囲の雑音を効果的にマスキングし、作業記憶を向上させる効果が研究で示されています[cite: 4]。</li>
-                        <li><strong>Brown Noise:</strong> ピンクノイズよりもさらに低音域が強く、胎内音にも似ています[cite: 4]。強いリラックス状態と、ディープフォーカス（過集中）を促します[cite: 4]。</li>
-                        <li><strong>Binaural Beat:</strong> 左右の耳（イヤホン使用時）にわずかに異なる周波数のサイン波を流すことで、脳波を同調させる技術です[cite: 4]。例えば左耳に400Hz、右耳に414Hzの音を流すと、脳は「14Hz」のうなりを感じます[cite: 4]。14Hz近辺はリラックスしながら集中している「アルファ波〜ローベータ波」の領域であり、作業効率の向上に寄与します[cite: 4]。</li>
+                <div class="bg-slate-800/20 p-5 rounded-xl border border-slate-700/50">
+                    <h3 class="font-semibold text-slate-200 mb-3 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-pink-400"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        1. 音響ロジック（集中力向上の研究に基づく）
+                    </h3>
+                    <ul class="list-disc pl-5 space-y-4">
+                        <li>
+                            <strong class="text-slate-300">マスキング効果と1/fゆらぎ（ノイズジェネレーター）</strong>
+                            <ul class="list-circle pl-5 mt-2 space-y-1">
+                                <li><span class="text-slate-300 font-medium">ピンクノイズ:</span> 自然界の音（滝や風）に近い周波数特性を持ち、周囲の雑音を効果的にマスキングします。</li>
+                                <li><span class="text-slate-300 font-medium">ブラウンノイズ:</span> ピンクノイズよりさらに低音域が強く、強いリラックスとディープフォーカスを促します。</li>
+                            </ul>
+                        </li>
+                        <li>
+                            <strong class="text-slate-300">バイノーラルビート（オシレーター）</strong>
+                            <p class="mt-1">左右の耳にわずかに異なる周波数の音を流すことで、脳波を同調させる技術です。14Hz近辺はリラックスしながら集中している「アルファ波〜ローベータ波」の領域です。</p>
+                        </li>
                     </ul>
                 </div>
 
-                <div>
-                    <h3 class="font-semibold text-teal-400 mb-2 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19A4.5 4.5 0 0 0 18 10c-.5 0-1 .1-1.4.3A6 6 0 0 0 6 12a4.5 4.5 0 0 0 .5 9h11Z"></path></svg>
-                        環境適応ロジック（Weather & Time Sync）
+                <div class="bg-slate-800/20 p-5 rounded-xl border border-slate-700/50">
+                    <h3 class="font-semibold text-slate-200 mb-3 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-teal-400"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        2. 環境適応ロジック（Time Sync）
                     </h3>
-                    <p class="mb-2">現在地の天候データを基に、音声のパラメーター（フィルターやLFO）を自動で変動させます[cite: 4]。</p>
+                    <p class="mb-3">Time Sync機能により、時間帯に合わせて自動的に音響パラメーター（マスターフィルター）が変化します。</p>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li><strong>朝〜昼:</strong> フィルターを開き気味にし、高音域を残すことで「覚醒度」を保つ明るい音に。</li>
+                        <li><strong>夕方:</strong> 標準的な明るさに保ちます。</li>
+                        <li><strong>夜〜深夜:</strong> フィルターを閉じ、こもったような落ち着きのある暖かみを提供します。</li>
+                    </ul>
+                </div>
+
+                <div class="bg-slate-800/20 p-5 rounded-xl border border-slate-700/50">
+                    <h3 class="font-semibold text-slate-200 mb-3 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                        3. システム構成
+                    </h3>
                     <ul class="list-disc pl-5 space-y-2">
-                        <li><strong>天候によるフィルター制御:</strong> 晴れの場合はフィルターを開き気味にし、高音域を残すことで「覚醒度」を保つ明るい音にします[cite: 4]。雨や曇りの場合はフィルターを閉じて高音域をカットし、こもったような「雨の日の屋内」の安心感を演出します（同時にブラウンノイズも強調されます）[cite: 4]。</li>
-                        <li><strong>気温による揺らぎ制御:</strong> 気温が高い（暑い）時は、音の揺らぎ（周期）をゆっくりにし、聴覚的な涼しさや落ち着きを提供します[cite: 4]。気温が低い（寒い）時は、揺らぎのテンポを少し上げ、暖かみのある中低音域をブーストします[cite: 4]。</li>
-                        <li><strong>Time Sync:</strong> 1日の時間帯に合わせて、空間の明るさ（フィルター周波数）を自動的に最適化します。</li>
+                        <li><span class="text-slate-300 font-medium">音声エンジン:</span> Web Audio APIを用いて、ブラウザ上でリアルタイムに波形を計算・合成するため外部音声ファイルは不要です。</li>
                     </ul>
                 </div>
             </div>
@@ -256,6 +318,7 @@
     </div>
 
     <script>
+        // サイレントオーディオ（バックグラウンド再生維持のためのハック）
         function createSilentAudioUrl() {
             const sampleRate = 44100, duration = 15, numChannels = 1;
             const numSamples = sampleRate * duration;
@@ -278,8 +341,8 @@
         const powerBtn = document.getElementById('power-btn');
         const powerIcon = document.getElementById('power-icon');
         const powerText = document.getElementById('power-text');
-        const weatherDisplay = document.getElementById('weather-display');
         
+        // 音色系のフェーダー（Free Mode判定に使うもの）
         const faders = {
             pink: document.getElementById('fader-pink'),
             brown: document.getElementById('fader-brown'),
@@ -287,7 +350,6 @@
             hz: document.getElementById('fader-hz'),
             tones: document.getElementById('fader-tones'),
             style: document.getElementById('fader-style'),
-            volume: document.getElementById('fader-volume'),
             filter: document.getElementById('fader-filter')
         };
         
@@ -298,13 +360,15 @@
             hz: document.getElementById('val-hz'),
             tones: document.getElementById('val-tones'),
             style: document.getElementById('val-style'),
-            volume: document.getElementById('val-volume'),
             filter: document.getElementById('val-filter')
         };
 
+        // マスターボリューム（独立パラメータ）
+        const masterFader = document.getElementById('fader-master');
+        const masterVal = document.getElementById('val-master');
+
         const presetBtns = document.querySelectorAll('.preset-btn');
         const timeSyncToggle = document.getElementById('time-sync-toggle');
-        const weatherSyncToggle = document.getElementById('weather-sync-toggle');
         const clockDisplay = document.getElementById('clock-display');
         const phaseDisplay = document.getElementById('phase-display');
         const phaseIcon = document.getElementById('phase-icon');
@@ -316,7 +380,7 @@
         let audioCtx;
         let isPlaying = false;
         
-        let masterGain, environmentFilter, volumeGain;
+        let masterGain, masterVolumeNode, environmentFilter;
         let pinkNoiseSource, brownNoiseSource;
         let pinkGain, brownGain;
         let oscLeft, oscRight;
@@ -324,8 +388,6 @@
         let tonesGain, tonesDelay;
         let nextNoteTime = 0;
 
-        let weatherData = { temp: 20, code: 0, loaded: false };
-        let isWeatherSync = true;
         let isAutoTimeSync = true;
         let currentPhaseKey = '';
 
@@ -338,31 +400,6 @@
             freeMode: { name: 'Free Mode', icon: '⚙️' }
         };
 
-        async function fetchWeatherData() {
-            try {
-                const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=35.79&longitude=139.90&current_weather=true');
-                const data = await res.json();
-                weatherData.temp = data.current_weather.temperature;
-                weatherData.code = data.current_weather.weathercode;
-                weatherData.loaded = true;
-                
-                let condition = "Clear";
-                if (weatherData.code >= 1 && weatherData.code <= 3) condition = "Cloudy";
-                if (weatherData.code >= 45 && weatherData.code <= 48) condition = "Fog";
-                if (weatherData.code >= 51 && weatherData.code <= 67) condition = "Rain";
-                if (weatherData.code >= 71) condition = "Snow";
-
-                weatherDisplay.innerText = `${weatherData.temp}°C | ${condition} (Matsudo)`;
-                updateFaderDisplays();
-                if(isPlaying) updateAudioParams();
-            } catch (error) {
-                weatherDisplay.innerText = 'Weather API Error';
-                weatherDisplay.classList.replace('text-teal-400', 'text-red-400');
-            }
-        }
-        fetchWeatherData();
-        setInterval(fetchWeatherData, 600000);
-
         function getTimeFilterOffset(hour) {
             if (hour >= 6 && hour < 10) return +800;       
             if (hour >= 10 && hour < 14) return +400;      
@@ -371,39 +408,17 @@
             return -600;                                   
         }
 
-        function getWeatherFilterOffset() {
-            if (!weatherData.loaded || !isWeatherSync) return 0;
-            return (weatherData.temp - 20) * 30;
-        }
-
-        function getWeatherNoiseBoost() {
-            if (!weatherData.loaded || !isWeatherSync) return { pink: 0, brown: 0 };
-            let boost = { pink: 0, brown: 0 };
-            if (weatherData.code >= 51) {
-                boost.pink = 0.2;
-                boost.brown = 0.3;
-            }
-            return boost;
-        }
-
         function updateFaderDisplays() {
-            const noiseBoost = getWeatherNoiseBoost();
-            
-            let pinkDisplay = Math.round((parseFloat(faders.pink.value) + noiseBoost.pink) * 100);
-            let brownDisplay = Math.round((parseFloat(faders.brown.value) + noiseBoost.brown) * 100);
-            
-            vals.pink.innerText = Math.min(100, pinkDisplay) + '%' + (noiseBoost.pink > 0 ? ' (Weather Boost)' : '');
-            vals.brown.innerText = Math.min(100, brownDisplay) + '%' + (noiseBoost.brown > 0 ? ' (Weather Boost)' : '');
-            
-            if(noiseBoost.pink > 0) vals.pink.classList.add('text-teal-400'); else vals.pink.classList.remove('text-teal-400');
-            if(noiseBoost.brown > 0) vals.brown.classList.add('text-teal-400'); else vals.brown.classList.remove('text-teal-400');
-
+            vals.pink.innerText = Math.round(faders.pink.value * 100) + '%';
+            vals.brown.innerText = Math.round(faders.brown.value * 100) + '%';
             vals.binaural.innerText = Math.round(faders.binaural.value * 100) + '%';
             vals.hz.innerText = parseFloat(faders.hz.value).toFixed(1) + 'Hz';
             vals.tones.innerText = Math.round(faders.tones.value * 100) + '%';
             vals.style.innerText = Math.round(faders.style.value * 100) + '%';
-            vals.volume.innerText = Math.round(faders.volume.value * 100) + '%';
             
+            // マスターボリューム表示更新
+            masterVal.innerText = Math.round(masterFader.value * 100) + '%';
+
             let baseFilter = parseFloat(faders.filter.value);
             let offset = 0;
             let tags = [];
@@ -411,10 +426,6 @@
             if (isAutoTimeSync) {
                 offset += getTimeFilterOffset(new Date().getHours());
                 tags.push("Time");
-            }
-            if (isWeatherSync) {
-                offset += getWeatherFilterOffset();
-                tags.push("Weather");
             }
 
             let actualFilter = baseFilter + offset;
@@ -436,6 +447,7 @@
             if (!conf) return;
 
             currentPhaseKey = presetKey;
+            // マスターボリュームはプリセット切替で上書きしない
             if (presetKey !== 'freeMode') {
                 faders.pink.value = conf.pink;
                 faders.brown.value = conf.brown;
@@ -471,9 +483,7 @@
             else initialPreset = 'deepSleep';
             
             isAutoTimeSync = true;
-            isWeatherSync = true;
             timeSyncToggle.checked = true;
-            weatherSyncToggle.checked = true;
             setPreset(initialPreset);
         }
 
@@ -483,21 +493,24 @@
             if(isPlaying) updateAudioParams();
         });
 
-        weatherSyncToggle.addEventListener('change', (e) => {
-            isWeatherSync = e.target.checked;
-            updateFaderDisplays();
-            if(isPlaying) updateAudioParams();
-        });
-
-        Object.values(faders).forEach((fader, key) => {
+        // 音色フェーダー変更時はFreeModeに移行
+        Object.values(faders).forEach(fader => {
             fader.addEventListener('input', () => {
-                if (key !== 'volume' && currentPhaseKey !== 'freeMode') {
+                if (currentPhaseKey !== 'freeMode') {
                     setPreset('freeMode');
                 } else {
                     updateFaderDisplays();
                     if(isPlaying) updateAudioParams();
                 }
             });
+        });
+
+        // マスターボリューム変更時（FreeModeには移行させない）
+        masterFader.addEventListener('input', () => {
+            masterVal.innerText = Math.round(masterFader.value * 100) + '%';
+            if (audioCtx) {
+                masterVolumeNode.gain.setTargetAtTime(parseFloat(masterFader.value), audioCtx.currentTime, 0.05);
+            }
         });
 
         presetBtns.forEach(btn => {
@@ -542,27 +555,33 @@
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
 
+            // iOSロック解除用
             const unlockSource = audioCtx.createBufferSource();
             unlockSource.buffer = audioCtx.createBuffer(1, 1, 22050);
             unlockSource.connect(audioCtx.destination);
             if (unlockSource.start) unlockSource.start(0);
 
-            masterGain = audioCtx.createGain(); masterGain.gain.value = 0; 
+            // ミュート/再生制御用のマスターゲイン
+            masterGain = audioCtx.createGain(); 
+            masterGain.gain.value = 0; 
+            
+            // 環境フィルター（時間帯連動）
             environmentFilter = audioCtx.createBiquadFilter();
             environmentFilter.type = 'lowpass';
             
             let baseFreq = parseFloat(faders.filter.value);
             if (isAutoTimeSync) baseFreq += getTimeFilterOffset(new Date().getHours());
-            if (isWeatherSync) baseFreq += getWeatherFilterOffset();
             environmentFilter.frequency.value = Math.max(200, Math.min(4500, baseFreq));
             environmentFilter.Q.value = 0.5;
 
-            volumeGain = audioCtx.createGain();
-            volumeGain.gain.value = parseFloat(faders.volume.value);
+            // ユーザー制御のマスターボリューム
+            masterVolumeNode = audioCtx.createGain();
+            masterVolumeNode.gain.value = parseFloat(masterFader.value);
 
+            // ルーティング: 全音源 -> masterGain(ON/OFF) -> environmentFilter -> masterVolumeNode(UI Vol) -> destination
             masterGain.connect(environmentFilter);
-            environmentFilter.connect(volumeGain);
-            volumeGain.connect(audioCtx.destination);
+            environmentFilter.connect(masterVolumeNode);
+            masterVolumeNode.connect(audioCtx.destination);
 
             pinkGain = audioCtx.createGain(); pinkGain.connect(masterGain);
             brownGain = audioCtx.createGain(); brownGain.connect(masterGain);
@@ -618,7 +637,7 @@
             oscRight.connect(pannerRight); pannerRight.connect(binauralGain); oscRight.start();
         }
 
-        const scale = [60, 62, 65, 67, 70, 72, 74, 77]; 
+        const scale = [60, 62, 65, 67, 70, 72, 74, 77]; // Pentatonic + add9
         function midiToFreq(m) { return Math.pow(2, (m - 69) / 12) * 440; }
 
         function scheduleGenerativeTones() {
@@ -667,26 +686,17 @@
         function updateAudioParams() {
             if (!audioCtx) return;
             const time = audioCtx.currentTime;
-            const noiseBoost = getWeatherNoiseBoost();
             
-            const targetPink = Math.min(1.0, parseFloat(faders.pink.value) + noiseBoost.pink);
-            const targetBrown = Math.min(1.0, parseFloat(faders.brown.value) + noiseBoost.brown);
-
-            pinkGain.gain.setTargetAtTime(targetPink * 0.5, time, 0.05);
-            brownGain.gain.setTargetAtTime(targetBrown * 0.8, time, 0.05);
+            pinkGain.gain.setTargetAtTime(parseFloat(faders.pink.value) * 0.5, time, 0.05);
+            brownGain.gain.setTargetAtTime(parseFloat(faders.brown.value) * 0.8, time, 0.05);
             binauralGain.gain.setTargetAtTime(parseFloat(faders.binaural.value) * 0.2, time, 0.05);
             tonesGain.gain.setTargetAtTime(parseFloat(faders.tones.value) * 0.8, time, 0.05); 
             
             let targetFilter = parseFloat(faders.filter.value);
             if (isAutoTimeSync) targetFilter += getTimeFilterOffset(new Date().getHours());
-            if (isWeatherSync) targetFilter += getWeatherFilterOffset();
             
             targetFilter = Math.max(200, Math.min(4500, targetFilter));
             environmentFilter.frequency.setTargetAtTime(targetFilter, time, 0.05);
-
-            if (volumeGain) {
-                volumeGain.gain.setTargetAtTime(parseFloat(faders.volume.value), time, 0.05);
-            }
 
             if (oscLeft && oscRight) {
                 const baseFreq = 400; const beatFreq = parseFloat(faders.hz.value);
