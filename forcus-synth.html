@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FocusSynth - Workspace Ambient</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #12141d; 
+            color: #e2e8f0; 
+            overscroll-behavior-y: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1rem;
+        }
+
+        input[type=range] { 
+            -webkit-appearance: none; 
+            background: transparent; 
+            width: 100%; 
+            margin: 12px 0; /* スライダー間の余白を揃える */
+        }
+        input[type=range]:focus { outline: none; }
+        input[type=range]::-webkit-slider-runnable-track { 
+            width: 100%; 
+            height: 4px; 
+            cursor: pointer; 
+            background: #2a2d3e; 
+            border-radius: 9999px; 
+        }
+        input[type=range]::-webkit-slider-thumb { 
+            height: 16px; 
+            width: 16px; 
+            border-radius: 50%; 
+            background: #8b5cf6; 
+            cursor: pointer; 
+            -webkit-appearance: none; 
+            margin-top: -6px; 
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.4); 
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        
+        .app-panel { 
+            background: #1a1d29; 
+            border: 1px solid #2a2d3e; 
+            border-radius: 24px; 
+        }
+
+        .toggle-checkbox:checked { right: 0; border-color: #8b5cf6; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #8b5cf6; }
+        .toggle-checkbox { right: 0; z-index: 1; border-color: #334155; transition: all 0.3s; }
+        .toggle-label { width: 44px; height: 22px; background-color: #334155; transition: all 0.3s; border-radius: 9999px; cursor: pointer; display: inline-block; position: relative;}
+        .toggle-circle { width: 18px; height: 18px; background-color: white; border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: transform 0.3s; }
+        .toggle-checkbox:checked ~ .toggle-circle { transform: translateX(22px); }
+
+        .preset-btn { background-color: transparent; border: 1px solid #2a2d3e; color: #94a3b8; transition: all 0.2s; line-height: 1.2; }
+        .preset-btn.active { background-color: #2a2d3e; color: #f8fafc; border-color: #3b4256; }
+        .preset-btn:hover:not(.active) { border-color: #3b4256; color: #cbd5e1; }
+
+        #modal-overlay { display: none; opacity: 0; transition: opacity 0.3s ease-in-out; }
+        #modal-overlay.active { display: flex; opacity: 1; }
+        
+        .phase-badge { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+        .list-circle { list-style-type: circle; }
+        
+        .mixer-item {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="silent-audio" loop playsinline preload="auto" style="display: none;"></audio>
+
+    <div class="w-full max-w-5xl flex flex-col md:flex-row gap-6 mx-auto items-stretch lg:min-h-[650px]">
+        
+        <div class="app-panel w-full md:w-1/3 p-8 flex flex-col relative justify-between">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h1 class="text-2xl font-bold text-white tracking-wide">FocusSynth</h1>
+                    <p class="text-[10px] text-slate-400 mt-1 uppercase tracking-widest">Workspace Ambient</p>
+                </div>
+                <button id="about-btn" class="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white hover:border-slate-500 transition-colors" aria-label="About">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </button>
+            </div>
+
+            <div class="flex flex-col items-center justify-center my-8">
+                <div id="clock-display" class="text-7xl font-bold text-white tracking-tighter mb-6 font-mono">00:00</div>
+                
+                <div id="phase-badge" class="phase-badge px-5 py-2 rounded-full flex items-center gap-2 mb-8 transition-all">
+                    <span id="phase-icon" class="text-base">--</span>
+                    <span id="phase-display" class="text-sm text-slate-200 font-medium">Loading...</span>
+                </div>
+
+                <div class="flex items-center gap-3 mb-10">
+                    <div class="relative inline-block w-[44px] h-[22px] align-middle select-none">
+                        <input type="checkbox" id="time-sync-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer opacity-0" checked/>
+                        <label for="time-sync-toggle" class="toggle-label block overflow-hidden h-[22px] rounded-full cursor-pointer relative"></label>
+                        <span class="toggle-circle absolute block pointer-events-none"></span>
+                    </div>
+                    <span class="text-sm text-slate-400 font-medium w-24">Time Sync</span>
+                </div>
+
+                <div class="flex flex-col items-center">
+                    <button id="power-btn" class="w-24 h-24 rounded-full bg-[#8b5cf6] text-white flex items-center justify-center shadow-[0_0_30px_rgba(139,92,246,0.3)] hover:scale-105 transition-transform duration-300 group">
+                        <svg id="power-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 ml-1">
+                            <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <div id="power-text" class="text-xs text-slate-500 uppercase tracking-widest mt-6 font-semibold">System Standby</div>
+                </div>
+            </div>
+            
+            <!-- Spacer to push content up and balance visually -->
+            <div class="h-4"></div>
+        </div>
+
+        <div class="app-panel w-full md:w-2/3 p-8 flex flex-col">
+            <div>
+                <h2 class="text-xs uppercase tracking-widest text-slate-500 mb-4 font-semibold">Soundscape Presets</h2>
+                
+                <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-10">
+                    <button class="preset-btn text-[10px] py-2 px-1 rounded-lg text-center" data-preset="morningClarity">Morning<br>Clarity</button>
+                    <button class="preset-btn text-[10px] py-2 px-1 rounded-lg text-center" data-preset="deepFocus">Deep<br>Focus</button>
+                    <button class="preset-btn text-[10px] py-2 px-1 rounded-lg text-center" data-preset="creativeFlow">Creative<br>Flow</button>
+                    <button class="preset-btn text-[10px] py-2 px-1 rounded-lg text-center" data-preset="eveningCalm">Evening<br>Calm</button>
+                    <button class="preset-btn text-[10px] py-2 px-1 rounded-lg text-center" data-preset="deepSleep">Deep<br>Sleep</button>
+                    <button class="preset-btn text-[10px] py-2 px-1 rounded-lg text-center" data-preset="freeMode">Free<br>Mode</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-10">
+                
+                <div class="mixer-item">
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2.5 h-2.5 rounded-full bg-pink-400"></div>
+                                <label for="fader-pink" class="text-sm font-semibold text-slate-200">Pink Noise</label>
+                            </div>
+                            <span id="val-pink" class="text-xs text-slate-500 font-mono">40%</span>
+                        </div>
+                        <input type="range" id="fader-pink" min="0" max="1" step="0.01" value="0.4">
+                    </div>
+                </div>
+
+                <div class="mixer-item">
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2.5 h-2.5 rounded-full bg-amber-600"></div>
+                                <label for="fader-brown" class="text-sm font-semibold text-slate-200">Brown Noise</label>
+                            </div>
+                            <span id="val-brown" class="text-xs text-slate-500 font-mono">70%</span>
+                        </div>
+                        <input type="range" id="fader-brown" min="0" max="1" step="0.01" value="0.7">
+                    </div>
+                </div>
+
+                <div class="mixer-item">
+                    <div class="flex flex-col h-full justify-between">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
+                                    <label for="fader-binaural" class="text-sm font-semibold text-slate-200">Binaural Beat</label>
+                                </div>
+                                <span id="val-binaural" class="text-xs text-slate-500 font-mono">30%</span>
+                            </div>
+                            <input type="range" id="fader-binaural" min="0" max="1" step="0.01" value="0.3">
+                        </div>
+                        
+                        <div class="mt-4">
+                            <div class="flex justify-between items-center mb-1">
+                                <label for="fader-hz" class="text-[10px] text-slate-400">Frequency (Hz)</label>
+                                <span id="val-hz" class="text-[10px] text-slate-300 font-mono bg-slate-800 px-1.5 py-0.5 rounded">12.0Hz</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-[9px] text-slate-600 w-8">3Hz<br>(Sleep)</span>
+                                <input type="range" id="fader-hz" min="3" max="14" step="0.1" value="12" class="flex-grow">
+                                <span class="text-[9px] text-slate-600 w-8 text-right">14Hz<br>(Focus)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mixer-item">
+                    <div class="flex flex-col h-full justify-between">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-2.5 h-2.5 rounded-full bg-teal-400"></div>
+                                    <label for="fader-tones" class="text-sm font-semibold text-slate-200">Generative Tones</label>
+                                </div>
+                                <span id="val-tones" class="text-xs text-slate-500 font-mono">60%</span>
+                            </div>
+                            <input type="range" id="fader-tones" min="0" max="1" step="0.01" value="0.6">
+                        </div>
+
+                        <div class="mt-4">
+                            <div class="flex justify-between items-center mb-1">
+                                <label for="fader-style" class="text-[10px] text-slate-400">Tone Style</label>
+                                <span id="val-style" class="text-[10px] text-slate-300 font-mono bg-slate-800 px-1.5 py-0.5 rounded">40%</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-[9px] text-slate-600 w-8">Drone</span>
+                                <input type="range" id="fader-style" min="0" max="1" step="0.01" value="0.4" class="flex-grow">
+                                <span class="text-[9px] text-slate-600 w-8 text-right">Melody</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-12 pt-6 border-t border-slate-800/50 mb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                        <label for="fader-filter" class="text-sm font-semibold text-slate-200">Space Brightness (Lowpass Filter)</label>
+                    </div>
+                    <span id="val-filter" class="text-xs font-mono transition-colors duration-300">800Hz</span>
+                </div>
+                <div class="flex items-center gap-4 mt-4">
+                    <span class="text-[10px] text-slate-500 w-12">Muffled</span>
+                    <input type="range" id="fader-filter" min="200" max="4500" step="10" value="800" class="flex-grow">
+                    <span class="text-[10px] text-slate-500 w-12 text-right">Clear</span>
+                </div>
+            </div>
+            
+            <!-- Spacer to push filter slightly up by absorbing remaining empty space below -->
+            <div class="flex-grow"></div>
+        </div>
+    </div>
+
+    <div id="modal-overlay" class="fixed inset-0 bg-[#0f111a]/90 backdrop-blur-sm z-50 items-center justify-center p-4">
+        <div class="app-panel max-w-2xl w-full max-h-[90vh] overflow-y-auto p-8 shadow-2xl relative">
+            <button id="close-modal-btn" class="absolute top-6 right-6 text-slate-500 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <h2 class="text-2xl font-bold text-white mb-6">About FocusSynth</h2>
+            
+            <div class="space-y-8 text-sm text-slate-400 leading-relaxed">
+                <p>FocusSynthは、人間の集中を促す音響学的アプローチを取り入れた、ブラウザ上で動作するジェネレーティブ・アンビエントアプリケーションです。</p>
+                
+                <div class="bg-slate-800/20 p-5 rounded-xl border border-slate-700/50">
+                    <h3 class="font-semibold text-slate-200 mb-3 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-pink-400"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        1. 音響ロジック（集中力向上の研究に基づく）
+                    </h3>
+                    <ul class="list-disc pl-5 space-y-4">
+                        <li>
+                            <strong class="text-slate-300">マスキング効果と1/fゆらぎ（ノイズジェネレーター）</strong>
+                            <ul class="list-circle pl-5 mt-2 space-y-1">
+                                <li><span class="text-slate-300 font-medium">ピンクノイズ:</span> 自然界の音（滝や風）に近い周波数特性を持ち、周囲の雑音を効果的にマスキングします。</li>
+                                <li><span class="text-slate-300 font-medium">ブラウンノイズ:</span> ピンクノイズよりさらに低音域が強く、強いリラックスとディープフォーカスを促します。</li>
+                            </ul>
+                        </li>
+                        <li>
+                            <strong class="text-slate-300">バイノーラルビート（オシレーター）</strong>
+                            <p class="mt-1">左右の耳にわずかに異なる周波数の音を流すことで、脳波を同調させる技術です。14Hz近辺はリラックスしながら集中している「アルファ波〜ローベータ波」の領域です。</p>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="bg-slate-800/20 p-5 rounded-xl border border-slate-700/50">
+                    <h3 class="font-semibold text-slate-200 mb-3 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-teal-400"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        2. 環境適応ロジック（Time Sync）
+                    </h3>
+                    <p class="mb-3">Time Sync機能により、時間帯に合わせて自動的に音響パラメーター（マスターフィルター）が変化します。</p>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li><strong>朝〜昼:</strong> フィルターを開き気味にし、高音域を残すことで「覚醒度」を保つ明るい音に。</li>
+                        <li><strong>夕方:</strong> 標準的な明るさに保ちます。</li>
+                        <li><strong>夜〜深夜:</strong> フィルターを閉じ、こもったような落ち着きのある暖かみを提供します。</li>
+                    </ul>
+                </div>
+
+                <div class="bg-slate-800/20 p-5 rounded-xl border border-slate-700/50">
+                    <h3 class="font-semibold text-slate-200 mb-3 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                        3. システム構成
+                    </h3>
+                    <ul class="list-disc pl-5 space-y-2">
+                        <li><span class="text-slate-300 font-medium">音声エンジン:</span> Web Audio APIを用いて、ブラウザ上でリアルタイムに波形を計算・合成するため外部音声ファイルは不要です。</li>
+                        <li><span class="text-slate-300 font-medium">バックグラウンド再生:</span> スマートフォンやタブレットの画面をオフにしたり、他のタブを開いたりしても音が鳴り続けるよう、Media Session APIとWeb Workerを使用しています。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function createSilentAudioUrl() {
+            const sampleRate = 44100, duration = 15, numChannels = 1;
+            const numSamples = sampleRate * duration;
+            const buffer = new ArrayBuffer(44 + numSamples * 2);
+            const view = new DataView(buffer);
+            const writeStr = (offset, string) => { for(let i=0; i<string.length; i++) view.setUint8(offset + i, string.charCodeAt(i)); };
+            
+            writeStr(0, 'RIFF'); view.setUint32(4, 36 + numSamples * 2, true); writeStr(8, 'WAVE');
+            writeStr(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+            view.setUint16(22, numChannels, true); view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * numChannels * 2, true); view.setUint16(32, numChannels * 2, true);
+            view.setUint16(34, 16, true); writeStr(36, 'data'); view.setUint32(40, numSamples * 2, true);
+            
+            return URL.createObjectURL(new Blob([view], { type: 'audio/wav' }));
+        }
+
+        const silentAudio = document.getElementById('silent-audio');
+        silentAudio.src = createSilentAudioUrl();
+
+        const powerBtn = document.getElementById('power-btn');
+        const powerIcon = document.getElementById('power-icon');
+        const powerText = document.getElementById('power-text');
+        
+        const faders = {
+            pink: document.getElementById('fader-pink'),
+            brown: document.getElementById('fader-brown'),
+            binaural: document.getElementById('fader-binaural'),
+            hz: document.getElementById('fader-hz'),
+            tones: document.getElementById('fader-tones'),
+            style: document.getElementById('fader-style'),
+            filter: document.getElementById('fader-filter')
+        };
+        
+        const vals = {
+            pink: document.getElementById('val-pink'),
+            brown: document.getElementById('val-brown'),
+            binaural: document.getElementById('val-binaural'),
+            hz: document.getElementById('val-hz'),
+            tones: document.getElementById('val-tones'),
+            style: document.getElementById('val-style'),
+            filter: document.getElementById('val-filter')
+        };
+
+        const presetBtns = document.querySelectorAll('.preset-btn');
+        const timeSyncToggle = document.getElementById('time-sync-toggle');
+        const clockDisplay = document.getElementById('clock-display');
+        const phaseDisplay = document.getElementById('phase-display');
+        const phaseIcon = document.getElementById('phase-icon');
+        
+        const aboutBtn = document.getElementById('about-btn');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const modalOverlay = document.getElementById('modal-overlay');
+
+        let audioCtx;
+        let isPlaying = false;
+        
+        let masterGain, environmentFilter;
+        let pinkNoiseSource, brownNoiseSource;
+        let pinkGain, brownGain;
+        let oscLeft, oscRight;
+        let binauralGain;
+        let tonesGain, tonesDelay;
+        let nextNoteTime = 0;
+
+        let isAutoTimeSync = true;
+        let currentPhaseKey = '';
+
+        const presets = {
+            morningClarity: { name: 'Morning Clarity', icon: '🌅', pink: 0.2, brown: 0.3, binaural: 0.6, hz: 14, tones: 0.8, style: 0.7, filter: 2500 },
+            deepFocus: { name: 'Deep Focus', icon: '🧠', pink: 0.4, brown: 0.7, binaural: 0.3, hz: 12, tones: 0.6, style: 0.4, filter: 800 },
+            creativeFlow: { name: 'Creative Flow', icon: '✨', pink: 0.6, brown: 0.2, binaural: 0.1, hz: 10, tones: 0.9, style: 0.9, filter: 1500 },
+            eveningCalm: { name: 'Evening Calm', icon: '🌙', pink: 0.3, brown: 0.8, binaural: 0.0, hz: 6,  tones: 0.3, style: 0.2, filter: 400 },
+            deepSleep: { name: 'Deep Sleep', icon: '😴', pink: 0.05, brown: 0.9, binaural: 0.4, hz: 3,  tones: 0.0, style: 0.0, filter: 250 },
+            freeMode: { name: 'Free Mode', icon: '⚙️' }
+        };
+
+        function getTimeFilterOffset(hour) {
+            if (hour >= 6 && hour < 10) return +800;       
+            if (hour >= 10 && hour < 14) return +400;      
+            if (hour >= 14 && hour < 18) return 0;         
+            if (hour >= 18 && hour < 22) return -300;      
+            return -600;                                   
+        }
+
+        function updateFaderDisplays() {
+            vals.pink.innerText = Math.round(faders.pink.value * 100) + '%';
+            vals.brown.innerText = Math.round(faders.brown.value * 100) + '%';
+            vals.binaural.innerText = Math.round(faders.binaural.value * 100) + '%';
+            vals.hz.innerText = parseFloat(faders.hz.value).toFixed(1) + 'Hz';
+            vals.tones.innerText = Math.round(faders.tones.value * 100) + '%';
+            vals.style.innerText = Math.round(faders.style.value * 100) + '%';
+            
+            let baseFilter = parseFloat(faders.filter.value);
+            let offset = 0;
+            let tags = [];
+
+            if (isAutoTimeSync) {
+                offset += getTimeFilterOffset(new Date().getHours());
+                tags.push("Time");
+            }
+
+            let actualFilter = baseFilter + offset;
+            actualFilter = Math.max(200, Math.min(4500, actualFilter));
+            
+            if (tags.length > 0) {
+                vals.filter.innerText = Math.round(actualFilter) + `Hz (Auto: ${tags.join('+')})`;
+                vals.filter.classList.add('text-teal-400');
+                vals.filter.classList.remove('text-slate-500');
+            } else {
+                vals.filter.innerText = baseFilter + 'Hz';
+                vals.filter.classList.remove('text-teal-400');
+                vals.filter.classList.add('text-slate-500');
+            }
+        }
+
+        function setPreset(presetKey) {
+            const conf = presets[presetKey];
+            if (!conf) return;
+
+            currentPhaseKey = presetKey;
+            if (presetKey !== 'freeMode') {
+                faders.pink.value = conf.pink;
+                faders.brown.value = conf.brown;
+                faders.binaural.value = conf.binaural;
+                faders.hz.value = conf.hz;
+                faders.tones.value = conf.tones;
+                faders.style.value = conf.style;
+                faders.filter.value = conf.filter;
+            }
+
+            updateFaderDisplays();
+            if (isPlaying) updateAudioParams();
+
+            presetBtns.forEach(btn => {
+                if (btn.getAttribute('data-preset') === presetKey) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            phaseIcon.innerText = conf.icon;
+            phaseDisplay.innerText = conf.name;
+        }
+
+        function initPresetSelection() {
+            const h = new Date().getHours();
+            let initialPreset = 'deepFocus';
+            if (h >= 6 && h < 10) initialPreset = 'morningClarity';
+            else if (h >= 10 && h < 14) initialPreset = 'deepFocus';
+            else if (h >= 14 && h < 18) initialPreset = 'creativeFlow';
+            else if (h >= 18 && h < 22) initialPreset = 'eveningCalm';
+            else initialPreset = 'deepSleep';
+            
+            isAutoTimeSync = true;
+            timeSyncToggle.checked = true;
+            setPreset(initialPreset);
+        }
+
+        timeSyncToggle.addEventListener('change', (e) => {
+            isAutoTimeSync = e.target.checked;
+            updateFaderDisplays();
+            if(isPlaying) updateAudioParams();
+        });
+
+        Object.values(faders).forEach(fader => {
+            fader.addEventListener('input', () => {
+                if (currentPhaseKey !== 'freeMode') {
+                    setPreset('freeMode');
+                } else {
+                    updateFaderDisplays();
+                    if(isPlaying) updateAudioParams();
+                }
+            });
+        });
+
+        presetBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                setPreset(btn.getAttribute('data-preset'));
+            });
+        });
+
+        function updateClock() {
+            const now = new Date();
+            clockDisplay.innerText = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            if (isAutoTimeSync) {
+                updateFaderDisplays();
+                if (isPlaying) updateAudioParams();
+            }
+        }
+        setInterval(updateClock, 1000);
+        initPresetSelection();
+        updateClock();
+
+        const workerCode = `
+            let timerId = null;
+            self.onmessage = function(e) {
+                if (e.data === 'start') {
+                    if (timerId) clearInterval(timerId);
+                    timerId = setInterval(() => self.postMessage('tick'), 100);
+                } else if (e.data === 'stop') {
+                    clearInterval(timerId);
+                    timerId = null;
+                }
+            };
+        `;
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        const audioWorker = new Worker(URL.createObjectURL(blob));
+
+        audioWorker.onmessage = function(e) {
+            if (e.data === 'tick' && isPlaying) scheduleGenerativeTones();
+        };
+
+        function initAudio() {
+            if (audioCtx) return; 
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+
+            const unlockSource = audioCtx.createBufferSource();
+            unlockSource.buffer = audioCtx.createBuffer(1, 1, 22050);
+            unlockSource.connect(audioCtx.destination);
+            if (unlockSource.start) unlockSource.start(0);
+
+            masterGain = audioCtx.createGain(); masterGain.gain.value = 0; 
+            environmentFilter = audioCtx.createBiquadFilter();
+            environmentFilter.type = 'lowpass';
+            
+            let baseFreq = parseFloat(faders.filter.value);
+            if (isAutoTimeSync) baseFreq += getTimeFilterOffset(new Date().getHours());
+            environmentFilter.frequency.value = Math.max(200, Math.min(4500, baseFreq));
+            environmentFilter.Q.value = 0.5;
+
+            masterGain.connect(environmentFilter);
+            environmentFilter.connect(audioCtx.destination);
+
+            pinkGain = audioCtx.createGain(); pinkGain.connect(masterGain);
+            brownGain = audioCtx.createGain(); brownGain.connect(masterGain);
+            binauralGain = audioCtx.createGain(); binauralGain.connect(masterGain);
+            
+            tonesGain = audioCtx.createGain(); 
+            tonesDelay = audioCtx.createDelay(2.0); tonesDelay.delayTime.value = 0.75; 
+            const delayFeedback = audioCtx.createGain(); delayFeedback.gain.value = 0.4;
+            
+            tonesGain.connect(masterGain); tonesGain.connect(tonesDelay);
+            tonesDelay.connect(delayFeedback); delayFeedback.connect(tonesDelay);
+            tonesDelay.connect(masterGain);
+
+            createNoiseSources();
+            createBinauralSources();
+            
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: 'FocusSynth Ambient',
+                    artist: 'Workspace',
+                    album: 'Generative Audio',
+                    artwork: [{ src: 'https://placehold.co/512x512/1a1d29/8b5cf6?text=FocusSynth', sizes: '512x512', type: 'image/png' }]
+                });
+                navigator.mediaSession.setActionHandler('play', () => { if (!isPlaying) powerBtn.click(); });
+                navigator.mediaSession.setActionHandler('pause', () => { if (isPlaying) powerBtn.click(); });
+            }
+        }
+
+        function createNoiseSources() {
+            const bufferSize = audioCtx.sampleRate * 2; 
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+
+            const pinkFilter = audioCtx.createBiquadFilter(); pinkFilter.type = 'lowpass'; pinkFilter.frequency.value = 800; 
+            pinkNoiseSource = audioCtx.createBufferSource(); pinkNoiseSource.buffer = buffer; pinkNoiseSource.loop = true;
+            pinkNoiseSource.connect(pinkFilter); pinkFilter.connect(pinkGain); pinkNoiseSource.start();
+
+            const brownFilter = audioCtx.createBiquadFilter(); brownFilter.type = 'lowpass'; brownFilter.frequency.value = 150; 
+            brownNoiseSource = audioCtx.createBufferSource(); brownNoiseSource.buffer = buffer; brownNoiseSource.loop = true;
+            brownNoiseSource.connect(brownFilter); brownFilter.connect(brownGain); brownNoiseSource.start();
+        }
+
+        function createBinauralSources() {
+            const baseFreq = 400; const beatFreq = parseFloat(faders.hz.value);
+            const pannerLeft = audioCtx.createStereoPanner(); pannerLeft.pan.value = -1; 
+            const pannerRight = audioCtx.createStereoPanner(); pannerRight.pan.value = 1;  
+
+            oscLeft = audioCtx.createOscillator(); oscLeft.type = 'sine'; oscLeft.frequency.value = baseFreq;
+            oscLeft.connect(pannerLeft); pannerLeft.connect(binauralGain); oscLeft.start();
+
+            oscRight = audioCtx.createOscillator(); oscRight.type = 'sine'; oscRight.frequency.value = baseFreq + beatFreq;
+            oscRight.connect(pannerRight); pannerRight.connect(binauralGain); oscRight.start();
+        }
+
+        const scale = [60, 62, 65, 67, 70, 72, 74, 77]; 
+        function midiToFreq(m) { return Math.pow(2, (m - 69) / 12) * 440; }
+
+        function scheduleGenerativeTones() {
+            if (!audioCtx) return;
+            const time = audioCtx.currentTime;
+            
+            if (nextNoteTime < time + 0.1) {
+                const styleVal = parseFloat(faders.style.value);
+                const baseInterval = 1.0 + (1.0 - styleVal) * 6.0; 
+                const randomInterval = (1.0 - styleVal) * 4.0;
+                const phraseLength = Math.floor(1 + styleVal * 4); 
+                
+                for (let i = 0; i < phraseLength; i++) {
+                    const noteOffset = i * (0.2 + (1.0 - styleVal) * 0.4);
+                    playSinglePluck(nextNoteTime + noteOffset, styleVal); 
+                }
+                nextNoteTime += baseInterval + (Math.random() * randomInterval);
+            }
+        }
+
+        function playSinglePluck(startTime, styleVal) {
+            if(!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            const panner = audioCtx.createStereoPanner();
+            
+            const octaveOffset = styleVal > 0.5 ? (Math.random() > 0.5 ? 12 : 0) : -12;
+            const noteIndex = Math.floor(Math.random() * scale.length);
+            
+            osc.frequency.value = midiToFreq(scale[noteIndex] + octaveOffset);
+            osc.type = 'sine';
+            panner.pan.value = (Math.random() * 2) - 1;
+            
+            const attack = 0.05 + (1.0 - styleVal) * 2.0;
+            const decay = (styleVal * 1.5 + 1.0) + (1.0 - styleVal) * 5.0;
+            const maxVol = 0.1 + (Math.random() * 0.1); 
+
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(maxVol, startTime + attack);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + attack + decay);
+
+            osc.connect(gain); gain.connect(panner); panner.connect(tonesGain);
+            osc.start(startTime); osc.stop(startTime + attack + decay + 0.1);
+        }
+
+        function updateAudioParams() {
+            if (!audioCtx) return;
+            const time = audioCtx.currentTime;
+            
+            pinkGain.gain.setTargetAtTime(parseFloat(faders.pink.value) * 0.5, time, 0.05);
+            brownGain.gain.setTargetAtTime(parseFloat(faders.brown.value) * 0.8, time, 0.05);
+            binauralGain.gain.setTargetAtTime(parseFloat(faders.binaural.value) * 0.2, time, 0.05);
+            tonesGain.gain.setTargetAtTime(parseFloat(faders.tones.value) * 0.8, time, 0.05); 
+            
+            let targetFilter = parseFloat(faders.filter.value);
+            if (isAutoTimeSync) targetFilter += getTimeFilterOffset(new Date().getHours());
+            
+            targetFilter = Math.max(200, Math.min(4500, targetFilter));
+            environmentFilter.frequency.setTargetAtTime(targetFilter, time, 0.05);
+
+            if (oscLeft && oscRight) {
+                const baseFreq = 400; const beatFreq = parseFloat(faders.hz.value);
+                oscLeft.frequency.setTargetAtTime(baseFreq, time, 0.1);
+                oscRight.frequency.setTargetAtTime(baseFreq + beatFreq, time, 0.1);
+            }
+        }
+
+        const playIconSVG = `<path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd" />`;
+        const pauseIconSVG = `<path fill-rule="evenodd" d="M6.75 5.25a.75.75 0 01.75-.75H9a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75V5.25zm7.5 0A.75.75 0 0115 4.5h1.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75V5.25z" clip-rule="evenodd" />`;
+
+        powerBtn.addEventListener('click', () => {
+            if (!audioCtx) initAudio();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            isPlaying = !isPlaying;
+
+            if (isPlaying) {
+                silentAudio.play().catch(e => console.warn('Silent audio workaround blocked:', e));
+                masterGain.gain.setTargetAtTime(1.0, audioCtx.currentTime, 1.0); 
+                
+                powerBtn.classList.remove('bg-[#8b5cf6]');
+                powerBtn.classList.add('bg-[#2a2d3e]', 'text-[#8b5cf6]');
+                powerIcon.innerHTML = pauseIconSVG; powerIcon.classList.remove('ml-1'); 
+                powerText.innerText = 'System Active';
+                powerText.classList.replace('text-slate-500', 'text-[#8b5cf6]');
+                
+                updateAudioParams();
+                nextNoteTime = audioCtx.currentTime + 0.5;
+                audioWorker.postMessage('start'); 
+            } else {
+                masterGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.5); 
+                silentAudio.pause();
+                audioWorker.postMessage('stop'); 
+
+                powerBtn.classList.add('bg-[#8b5cf6]');
+                powerBtn.classList.remove('bg-[#2a2d3e]', 'text-[#8b5cf6]');
+                powerIcon.innerHTML = playIconSVG; powerIcon.classList.add('ml-1'); 
+                powerText.innerText = 'System Standby';
+                powerText.classList.replace('text-[#8b5cf6]', 'text-slate-500');
+            }
+        });
+
+        aboutBtn.addEventListener('click', () => modalOverlay.classList.add('active'));
+        closeModalBtn.addEventListener('click', () => modalOverlay.classList.remove('active'));
+        modalOverlay.addEventListener('click', (e) => { if(e.target === modalOverlay) modalOverlay.classList.remove('active'); });
+    </script>
+</body>
+</html>
